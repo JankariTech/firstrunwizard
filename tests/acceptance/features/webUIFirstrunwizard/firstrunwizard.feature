@@ -8,6 +8,7 @@ Feature:  first login wizard
     Given user "user1" has been created with default attributes
     When user "user1" logs in using the webUI
     Then the user should see the firstrunwizard popup message
+    And the heading of the popup should be "A safe home for all your data"
 
   Scenario: Previously created user logs into ownCloud
     Given user "user1" has been created with default attributes
@@ -15,3 +16,11 @@ Feature:  first login wizard
     And the user closes the firstrunwizard popup message
     And the user re-logs in as "user1" using the webUI
     Then the user should not see the firstrunwizard popup message
+
+  Scenario: User clicks "Show First Run Wizard" button
+    Given user "user1" has been created with default attributes
+    And user "user1" has logged in using the webUI
+    And the user has closed the firstrunwizard popup message
+    And the user has browsed to the  General section of settings page
+    When the user clicks "Show First Run Wizard Again" button
+    Then the user should see the firstrunwizard popup message in general settings page

@@ -24,6 +24,7 @@ use Behat\Behat\Context\Context;
 use Behat\Behat\Hook\Scope\BeforeScenarioScope;
 use Behat\MinkExtension\Context\RawMinkContext;
 use Page\FirstrunwizardPage;
+use TestHelpers\SetupHelper;
 
 require_once 'bootstrap.php';
 
@@ -46,6 +47,13 @@ class WebUIFirstrunwizardContext extends RawMinkContext implements Context {
 	 * @var FirstrunwizardPage
 	 */
 	private $firstrunwizardPage;
+
+	private $pathOfWizardFileFromServerRoot = "/apps/firstrunwizard/templates/wizard.php";
+
+	/**
+	 * @var FileContent
+	 */
+	private $contentOfWizardFile = null;
 
 	/**
 	 * WebUIFirstrunwizardContext constructor.
@@ -75,6 +83,7 @@ class WebUIFirstrunwizardContext extends RawMinkContext implements Context {
 
 	/**
 	 * @Then the user should not see the firstrunwizard popup message
+	 * @Then the user should see the firstrunwizard popup message in general settings page
 	 *
 	 * @throws Exception
 	 *
@@ -101,6 +110,57 @@ class WebUIFirstrunwizardContext extends RawMinkContext implements Context {
 	}
 
 	/**
+	 * @When the user clicks :arg1 button
+	 *
+	 * @return void
+	 */
+	public function showFirstRunWizardAgainButton($arg1)
+	{
+		$this->firstRunWizardPage->openPopup();
+	}
+
+	/**
+	 * @Then the heading of the popup should be :expectedMessage
+	 *
+	 * @param $expectedMessage
+	 *
+	 * @throws Exception
+	 * @return void
+	 */
+	public function theHeadingOfThePopupShouldBe($expectedMessage) {
+		$headingMessage = $this->firstRunWizardPage->getHeadingMessage();
+
+		PHPUnit\Framework\Assert::assertSame(
+			$expectedMessage, $headingMessage, "Firstrunwizard showed unexpected message."
+		);
+	}
+
+	/**
+	 *@Given the administrator has changed the default popup message of firstrunwizard to :newMessage
+	 * @param $newMessage
+	 *
+	 *@return void
+	 */
+	public function changeTheDefaultPopupMessage($newMessage) {
+		SetupHelper::init(
+			$this->featureContext->getAdminUsername(),
+			$this->featureContext->getAdminPassword(),
+			$this->featureContext->getBaseUrl(),
+			$this->featureContext->getOcPath()
+		);
+
+		$this->contentOfWizardFile = SetupHelper::readFileFromServer(
+			$this->pathOfWizardFileFromServerRoot
+		);
+
+		$content ="<div id='firstrunwizard'><h1>$newMessage</h1></div>";
+		SetupHelper::createFileOnServer(
+			$this->pathOfWizardFileFromServerRoot,
+			$content
+		);
+	}
+
+	/**
 	 * @BeforeScenario
 	 *
 	 * @param BeforeScenarioScope $scope
@@ -113,5 +173,19 @@ class WebUIFirstrunwizardContext extends RawMinkContext implements Context {
 		// Get all the contexts you need in this context
 		$this->featureContext = $environment->getContext('FeatureContext');
 		$this->webUIGeneralContext = $environment->getContext('WebUIGeneralContext');
+	}
+
+	/**
+	 * @AfterScenario
+	 *
+	 * @return void
+	 */
+	public function afterScenario() {
+		if ($this->contentOfWizardFile !== null) {
+			SetupHelper::createFileOnServer(
+				$this->pathOfWizardFileFromServerRoot,
+				$this->contentOfWizardFile
+			);
+		}
 	}
 }
